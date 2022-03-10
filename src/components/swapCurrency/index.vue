@@ -107,17 +107,19 @@ export default {
       },
       deep: true,
     },
-    /// cover case select same value
+    /// cover case select same value with output token
     inputToken(newValue, oldValue) {
       if (newValue?.tokenId === this.outputToken?.tokenId) {
         this.inputToken = this.outputToken;
         this.outputToken = oldValue;
+        this.updateOutputAmount();
       }
     },
     outputToken(newValue, oldValue) {
       if (newValue?.tokenId === this.inputToken?.tokenId) {
         this.outputToken = this.inputToken;
         this.inputToken = oldValue;
+        this.updateInputAmount();
       }
     },
   },
