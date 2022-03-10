@@ -102,7 +102,7 @@ export default {
         if (!this.inputToken) this.inputToken = this.pickRandomFromArray(v);
         if (!this.outputToken)
           this.outputToken = this.pickRandomFromArray(
-            v.filter((f) => f.symbol != this.inputToken.symbol)
+            v.filter((f) => f.tokenId != this.inputToken.tokenId)
           );
       },
       deep: true,
@@ -156,7 +156,7 @@ export default {
             return Promise.reject(error);
           }
           const result = await response.json();
-          if (this.tokenDataUpdateAt == result.updated_at) return;
+          if (this.tokenDataUpdateAt === result.updated_at) return;
 
           this.tokenDataUpdateAt = result.updated_at;
 
