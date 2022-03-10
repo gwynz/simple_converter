@@ -16,5 +16,8 @@ Vue.mixin({
             }
             return result;
         },
+        roundingDecimal(value, decimals = 4) {
+            return Number(Math.round(value + 'e' + decimals) + 'e-' + decimals);
+        }
     }
 });

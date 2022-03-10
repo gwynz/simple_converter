@@ -23,7 +23,9 @@
           v-for="value in tokenData"
           :key="value.tokenId"
           :value="value.tokenId"
-          :class="{'text-right bg-light-900': tokenInputValue === value.tokenId}"
+          :class="{
+            'text-right bg-light-900': tokenInputValue === value.tokenId,
+          }"
         >
           {{ value.symbol }}
         </option>

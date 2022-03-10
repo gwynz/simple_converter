@@ -9,7 +9,7 @@
         @calculatorAmount="updateOutputAmount"
       />
       <button
-        @click="swapInputForOutput(inputToken, outToken)"
+        @click="swapInputForOutput(inputToken, outputToken)"
         class="text-light-700 p-1.5 rounded-full bg-purple-900 hover:bg-purple-300 hover:text-gray-800 transition-colors my-4"
       >
         <svg
@@ -24,13 +24,15 @@
         </svg>
       </button>
       <CurrencyInput
-        :currentToken.sync="outToken"
-        :currentAmount.sync="outAmount"
+        :currentToken.sync="outputToken"
+        :currentAmount.sync="outputAmount"
         :tokenData="tokenData"
         @calculatorAmount="updateInputAmount"
       />
       <div class="pb-4 flex justify-between items-center mt-2">
-        <div class="text-purple-400 text-sm"><span v-show="pricePerToken">Price</span></div>
+        <div class="text-purple-400 text-sm">
+          <span v-show="pricePerToken">Price</span>
+        </div>
         <div class="flex items-center space-x-2">
           <span class="text-sm" v-if="isFetching"> Fetching... </span>
           <span class="text-sm" v-else-if="pricePerToken">{{
@@ -40,7 +42,7 @@
             class="p-1 rounded-full bg-gray-900 hover:bg-gray-700 transition-colors"
             @click="fetchTokens"
             :disabled="isFetching"
-            :class="{'bg-gray-700' : isFetching}"
+            :class="{ 'bg-gray-700': isFetching }"
             title="Refresh price"
           >
             <svg
@@ -70,9 +72,9 @@ export default {
       tokenData: [],
       tokenDataUpdateAt: null,
       inputToken: null,
-      outToken: null,
+      outputToken: null,
       inputAmount: 0,
-      outAmount: 0,
+      outputAmount: 0,
       isFetching: false,
     };
   },
@@ -83,14 +85,14 @@ export default {
     pricePerToken() {
       if (
         !this.inputAmount ||
-        !this.outAmount ||
+        !this.outputAmount ||
         !this.inputToken ||
-        !this.outToken
+        !this.outputToken
       )
         return;
-      return `${(this.outAmount / this.inputAmount).toFixed(4)} ${
+      return `${this.roundingDecimal(this.inputAmount / this.outputAmount)} ${
         this.inputToken.symbol
-      } per ${this.outToken.symbol}`;
+      } per ${this.outputToken.symbol}`;
     },
   },
   watch: {
@@ -98,8 +100,8 @@ export default {
       handler(v) {
         if (!v) return;
         if (!this.inputToken) this.inputToken = this.pickRandomFromArray(v);
-        if (!this.outToken)
-          this.outToken = this.pickRandomFromArray(
+        if (!this.outputToken)
+          this.outputToken = this.pickRandomFromArray(
             v.filter((f) => f.symbol != this.inputToken.symbol)
           );
       },
@@ -107,14 +109,14 @@ export default {
     },
     /// cover case select same value
     inputToken(newValue, oldValue) {
-      if (newValue?.tokenId === this.outToken?.tokenId) {
-        this.inputToken = this.outToken;
-        this.outToken = oldValue;
+      if (newValue?.tokenId === this.outputToken?.tokenId) {
+        this.inputToken = this.outputToken;
+        this.outputToken = oldValue;
       }
     },
-    outToken(newValue, oldValue) {
+    outputToken(newValue, oldValue) {
       if (newValue?.tokenId === this.inputToken?.tokenId) {
-        this.outToken = this.inputToken;
+        this.outputToken = this.inputToken;
         this.inputToken = oldValue;
       }
     },
@@ -124,28 +126,31 @@ export default {
   },
   methods: {
     updateInputAmount() {
-      if (!this.outAmount) {
-        this.outAmount = this.inputAmount = 0;
+      if (!this.outputAmount) {
+        this.outputAmount = this.inputAmount = 0;
         return;
       }
-      this.inputAmount =
-        (this.outAmount * this.outToken.price) / this.inputToken.price;
+      this.inputAmount = this.roundingDecimal(
+        (this.outputAmount * this.outputToken.price) /
+        this.inputToken.price
+      );
     },
     updateOutputAmount() {
       if (!this.inputAmount) {
-        this.outAmount = this.inputAmount = 0;
+        this.outputAmount = this.inputAmount = 0;
         return;
       }
-      this.outAmount =
-        (this.inputAmount * this.inputToken.price) / this.outToken.price;
+      this.outputAmount = this.roundingDecimal(
+        (this.inputAmount * this.inputToken.price) /
+        this.outputToken.price
+      );
     },
     fetchTokens() {
       this.isFetching = true;
       fetch("https://api.pancakeswap.info/api/v2/tokens")
         .then(async (response) => {
           if (!response.ok) {
-            // get error message from body or default to response statusText
-            const error = (result && result.message) || response.statusText;
+            const error = result && result.message;
             return Promise.reject(error);
           }
           const result = await response.json();
@@ -154,10 +159,7 @@ export default {
           this.tokenDataUpdateAt = result.updated_at;
 
           this.tokenData = result.data
-            ? Object.entries(result.data).map(([key, value]) => {
-                value.tokenId = key;
-                return value;
-              })
+            ? this.processResponseTokenData(result.data)
             : [];
         })
         .catch((error) => {
@@ -167,9 +169,25 @@ export default {
           this.isFetching = false;
         });
     },
+    processResponseTokenData(objectData) {
+      return Object.entries(objectData)
+        .map(([key, value]) => {
+          value.tokenId = key;
+          return value;
+        })
+        .sort(function (a, b) {
+          if (a.symbol < b.symbol) {
+            return -1;
+          }
+          if (a.symbol > b.symbol) {
+            return 1;
+          }
+          return 0;
+        });
+    },
     swapInputForOutput() {
-      [this.inputToken, this.outToken] = [this.outToken, this.inputToken];
-      [this.inputAmount, this.outAmount] = [this.outAmount, this.inputAmount];
+      [this.inputToken, this.outputToken] = [this.outputToken, this.inputToken];
+      [this.inputAmount, this.outputAmount] = [this.outputAmount, this.inputAmount];
     },
   },
 };
